@@ -1,5 +1,8 @@
 # 구름한글 독립 배포
 
+현재 기본 배포 대상은 Cloudflare입니다. [CLOUDFLARE.md](CLOUDFLARE.md)를 참고하세요.
+아래 Railway 안내는 기존 Node 서버를 사용하는 선택적인 배포 방법입니다.
+
 이 폴더만 새 GitHub 저장소에 올립니다. 원본 번들의 Scribblers 배포 워크플로는 포함하지 않았습니다.
 원본 커밋: 0c473761c15690a6758f13ff5a0617b10978f622.
 공유 mount 유틸리티를 server/mount.js에 복사하고 두 import를 수정했습니다.

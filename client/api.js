@@ -70,6 +70,7 @@ export const api = {
 };
 
 function stream(path, handlers) {
+  if (document.querySelector('meta[name="cloud-hangul-transport"]')?.content === "websocket") return socketStream(path, handlers);
   const es = new EventSource(path);
   es.addEventListener("hello", (e) => {
     const data = JSON.parse(e.data);
@@ -79,6 +80,31 @@ function stream(path, handlers) {
   for (const [event, fn] of Object.entries(handlers.on || {})) es.addEventListener(event, (e) => fn(JSON.parse(e.data)));
   es.onerror = () => handlers.onError?.(es.readyState);
   return () => es.close();
+}
+
+function socketStream(path, handlers) {
+  let socket, timer, stopped = false, attempts = 0;
+  const url = new URL(path, document.baseURI);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  function connect() {
+    if (stopped) return;
+    socket = new WebSocket(url);
+    socket.onmessage = (event) => {
+      let data;
+      try { data = JSON.parse(event.data); } catch { return; }
+      if (data.type === "hello") {
+        attempts = 0;
+        if (Number.isFinite(data.now)) skew = data.now - Date.now();
+        handlers.onOpen?.(data);
+      } else handlers.on?.[data.type]?.(data);
+    };
+    socket.onerror = () => handlers.onError?.(socket.readyState);
+    socket.onclose = () => {
+      if (!stopped) timer = setTimeout(connect, Math.min(30000, 1000 * 2 ** Math.min(attempts++, 5)) + Math.random() * 500);
+    };
+  }
+  connect();
+  return () => { stopped = true; clearTimeout(timer); socket?.close(); };
 }
 
 // One city's sky: new and deleted messages and shared inventory changes.

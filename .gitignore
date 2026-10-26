@@ -3,3 +3,7 @@ data/
 .env
 .env.*
 npm-debug.log*
+dist/
+.wrangler/
+.dev.vars
+.dev.vars.*

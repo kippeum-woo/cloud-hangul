@@ -5,9 +5,18 @@
   "scripts": {
     "start": "node server/start.js",
     "land": "node scripts/build-land.mjs",
-    "test": "node --test"
+    "test": "node --test test/*.test.js",
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "test:cloudflare": "npm run build && node --test integration/*.test.js"
   },
   "dependencies": {
     "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "miniflare": "5.20261019.2-beta",
+    "wrangler": "4.152.0"
   }
 }

@@ -1,5 +1,15 @@
 # 구름한글 (Cloud Hangul)
 
+## Cloudflare deployment
+
+The primary target is Cloudflare Workers Free with Static Assets and a
+SQLite-backed Durable Object. See [CLOUDFLARE.md](CLOUDFLARE.md).
+`npm run dev` runs Cloudflare locally; `npm start` retains the Node version.
+`npm run test:cloudflare` tests SQLite persistence, concurrent claims,
+publication, asset delivery and WebSockets in the Cloudflare local runtime.
+The Cloudflare version uses hibernating WebSockets instead of Node SSE.
+Shared rules live in `server/core/`; file persistence is a Node-only adapter.
+
 Spin a 3D globe, pick a supported city, and write in its live local sky with
 fluffy Korean cloud letters. Everyone who opens the same city shares one sky
 and one supply of letters.
