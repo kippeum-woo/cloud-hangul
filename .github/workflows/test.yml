@@ -16,4 +16,5 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run test:cloudflare
+      - run: npm run build:pages
       - run: npx wrangler deploy --dry-run

@@ -1,11 +1,12 @@
 # 구름한글 (Cloud Hangul)
 
-Play: https://cloud-hangul.cloud-hangul.workers.dev/
+Play: https://cloud-hangul.pages.dev/
 
 ## Cloudflare deployment
 
-The primary target is Cloudflare Workers Free with Static Assets and a
-SQLite-backed Durable Object. See [CLOUDFLARE.md](CLOUDFLARE.md).
+Cloudflare Pages serves the game and forwards same-origin API and WebSocket
+requests to the existing Worker and SQLite-backed Durable Object. Both deploy
+from GitHub main. See [CLOUDFLARE.md](CLOUDFLARE.md).
 `npm run dev` runs Cloudflare locally; `npm start` retains the Node version.
 `npm run test:cloudflare` tests SQLite persistence, concurrent claims,
 publication, asset delivery and WebSockets in the Cloudflare local runtime.

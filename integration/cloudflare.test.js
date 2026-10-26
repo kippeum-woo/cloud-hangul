@@ -6,16 +6,22 @@ import path from "node:path";
 import { build } from "esbuild";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 
-test("Cloudflare SQLite: shared inventory, atomic publication, realtime, restart, isolation and assets", { timeout: 90000 }, async () => {
+for (const usePages of [false, true]) test(`Cloudflare ${usePages ? "Pages gateway" : "Worker"}: shared inventory, atomic publication, realtime, restart, isolation and assets`, { timeout: 90000 }, async () => {
   const bundle = await build({ entryPoints: ["cloudflare/worker.js"], bundle: true, write: false, format: "esm", platform: "node", external: ["cloudflare:workers"], target: "es2022" });
   const persist = fs.mkdtempSync(path.join(os.tmpdir(), "cloud-hangul-cf-"));
-  const options = convertV4MiniflareOptions({
+  const backend = {
+    name: "backend",
     modules: true, script: bundle.outputFiles[0].text,
     compatibilityDate: "2026-10-01", compatibilityFlags: ["nodejs_compat"],
     durableObjects: { SKY: { className: "SharedSky", useSQLite: true } },
     durableObjectsPersist: persist,
     assets: { directory: "dist", binding: "ASSETS", run_worker_first: ["/api/*", "/health"], routerConfig: { has_user_worker: true } },
-  });
+  };
+  const options = convertV4MiniflareOptions(usePages ? { workers: [
+    { name: "pages", modules: true, script: fs.readFileSync("pages/gateway.js", "utf8"),
+      compatibilityDate: "2026-10-01", serviceBindings: { GAME: "backend" },
+      assets: backend.assets }, backend,
+  ] } : backend);
   options.resourcePersistencePath = persist;
   options.isolatedResourcePersistencePath = persist;
   let mf = new Miniflare(options);

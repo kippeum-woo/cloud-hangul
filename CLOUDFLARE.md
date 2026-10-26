@@ -2,11 +2,13 @@
 
 GitHub: https://github.com/kippeum-woo/cloud-hangul
 
-게임: https://cloud-hangul.cloud-hangul.workers.dev/
+게임: https://cloud-hangul.pages.dev/
 
 ## 구성
 
-Workers Static Assets가 화면을 제공하고 Workers가 API와 날씨 요청을 처리합니다.
+Pages가 화면을 제공하고 GAME 서비스 바인딩으로 기존 Worker에 API와 WebSocket을 전달합니다.
+기존 Worker 주소 https://cloud-hangul.cloud-hangul.workers.dev/ 도 유지합니다.
+Workers가 API와 날씨 요청을 처리합니다.
 SQLite Durable Object가 공용 자모, 예약, 글씨, 마커 집계를 저장합니다.
 Hibernating WebSockets로 실시간 변경을 전달하며 유휴 실행량을 줄입니다.
 외부 데이터베이스와 유료 Volume은 필요 없습니다.
@@ -54,6 +56,22 @@ Durable Object 이름과 migration 기록을 임의로 바꾸지 마세요.
 `test:cloudflare`가 정적 파일도 빌드합니다. GitHub Actions는 테스트만 수행합니다.
 CLI 첫 배포와 GitHub 자동 배포 연결은 별도 단계입니다. 대시보드에 연결된
 저장소가 표시되는지 확인하세요. 운영 토큰은 소스에 넣지 않습니다.
+
+## Pages 주소와 자동 배포
+
+같은 GitHub 저장소를 Pages Git 프로젝트 `cloud-hangul`에 연결합니다.
+
+- Production branch: `main`
+- Root directory: `pages`
+- Build command: `cd .. && npm ci && npm test && npm run test:cloudflare && npm run build:pages`
+- Build output directory: `dist`
+- Environment variable: `NODE_VERSION=24`
+
+`pages/wrangler.jsonc`가 GAME → 기존 `cloud-hangul` Worker 연결을 정의합니다.
+`pages/dist/_routes.json`은 API와 health 요청만 Functions로 전달합니다.
+기존 Workers Builds도 유지하므로 main push 시 화면과 서버가 자동 배포됩니다.
+공유 도시 데이터와 Durable Object 식별자는 변경하지 않습니다.
+주소별 쿠키가 달라 기존 주소에서 작성한 글의 익명 소유권은 새 주소로 자동 이전되지 않습니다.
 
 ## 무료 한도와 제한
 

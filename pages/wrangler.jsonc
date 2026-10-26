@@ -1,0 +1,7 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "cloud-hangul",
+  "compatibility_date": "2026-10-01",
+  "pages_build_output_dir": "./dist",
+  "services": [{ "binding": "GAME", "service": "cloud-hangul" }]
+}
