@@ -2,12 +2,17 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { transformSync } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.join(root, "dist");
 const hash = crypto.createHash("sha256");
 for (const dir of ["client", "src"]) {
-  for (const file of fs.readdirSync(path.join(root, dir)).sort()) hash.update(file).update(fs.readFileSync(path.join(root, dir, file)));
+  for (const file of fs.readdirSync(path.join(root, dir)).sort()) {
+    const source = fs.readFileSync(path.join(root, dir, file));
+    if (file.endsWith('.js')) transformSync(source.toString(), { loader: 'js', sourcefile: `${dir}/${file}` });
+    hash.update(file).update(source);
+  }
 }
 hash.update(fs.readFileSync(path.join(root, "package-lock.json")));
 const version = hash.digest("hex").slice(0, 12);

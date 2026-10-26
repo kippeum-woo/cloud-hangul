@@ -742,8 +742,8 @@ function restoreCamera(city) {
     saved = null;
   }
   if (saved && [saved.x, saved.y, saved.z].every(Number.isFinite)) sky.setCamera(saved.x, saved.y, saved.z);
-  $("zoom-level").textContent = `${Math.round(sky.zoom * 100)}%`;
   else goHomeNow();
+  $("zoom-level").textContent = `${Math.round(sky.zoom * 100)}%`;
 }
 
 const goHomeNow = () => sky.setCamera(sky.defaultCenter(), 0, 1);
