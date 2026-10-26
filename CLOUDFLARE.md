@@ -2,6 +2,8 @@
 
 GitHub: https://github.com/kippeum-woo/cloud-hangul
 
+게임: https://cloud-hangul.cloud-hangul.workers.dev/
+
 ## 구성
 
 Workers Static Assets가 화면을 제공하고 Workers가 API와 날씨 요청을 처리합니다.
@@ -46,7 +48,8 @@ Durable Object 이름과 migration 기록을 임의로 바꾸지 마세요.
 4. Production branch: `main`; Root directory: 저장소 루트.
 5. Build command: `npm ci && npm test && npm run test:cloudflare`.
 6. Deploy command: `npx wrangler deploy`.
-7. 첫 실행 로그에서 테스트와 배포 결과를 확인합니다.
+7. Advanced settings의 빌드 환경 변수 `NODE_VERSION=24`를 설정합니다.
+8. Enable Preview builds는 끕니다. 첫 실행 로그에서 테스트와 배포 결과를 확인합니다.
 
 `test:cloudflare`가 정적 파일도 빌드합니다. GitHub Actions는 테스트만 수행합니다.
 CLI 첫 배포와 GitHub 자동 배포 연결은 별도 단계입니다. 대시보드에 연결된

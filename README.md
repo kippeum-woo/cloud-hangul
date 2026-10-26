@@ -1,5 +1,7 @@
 # 구름한글 (Cloud Hangul)
 
+Play: https://cloud-hangul.cloud-hangul.workers.dev/
+
 ## Cloudflare deployment
 
 The primary target is Cloudflare Workers Free with Static Assets and a
