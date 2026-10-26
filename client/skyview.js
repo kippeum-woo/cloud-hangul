@@ -14,8 +14,11 @@ import { skyState } from "../src/sky.js";
 import { clampWorldY, dxWrap, extent, GLYPH, opacityAt, SKY_W, UNIT_PX, wrapX } from "../src/messages.js";
 import { drawGlyph } from "./glyphs.js";
 
-export const ZOOM_MIN = 0.08;
-export const ZOOM_MAX = 8;
+export const ZOOM_MIN = 0.0001;
+export const ZOOM_MAX = 128;
+const ATMOSPHERE_W = 12;
+// Continue the sky below the astronomical horizon without a ground/haze strip.
+export const atmosphereAltitude = raw => 12 + 12 * Math.log1p(Math.exp(Math.min(8, (raw - 12) / 12)));
 const BG_PX = 40; // backdrop pixels per world unit of vertical camera travel
 const LOD_GLYPH_PX = 12; // below this glyph size, messages draw as dots
 
@@ -30,7 +33,7 @@ const smooth = (a, b, x) => {
 };
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 
-export const bearingToX = (deg) => wrapX((deg / 360) * SKY_W);
+export const bearingToX = (deg) => ((deg % 360 + 360) % 360 / 360) * ATMOSPHERE_W;
 
 function rng(seed) {
   let s = seed >>> 0 || 1;
@@ -99,7 +102,7 @@ export class SkyView {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.reducedMotion = reducedMotion;
-    this.centerX = SKY_W / 2;
+    this.centerX = ATMOSPHERE_W / 2;
     this.centerY = 0;
     this.zoom = 1;
     this.messages = new Map();
@@ -165,7 +168,7 @@ export class SkyView {
     this.messages.clear();
     this.highlight = null;
     const r = rng(hashStr(city.id));
-    this.stars = Array.from({ length: 320 }, () => ({ x: r() * SKY_W, y: r() * 0.92, s: 0.4 + r() * r() * 1.6, p: r() * 6.28 }));
+    this.stars = Array.from({ length: 320 }, () => ({ x: r() * ATMOSPHERE_W, y: r() * 0.92, s: 0.4 + r() * r() * 1.6, p: r() * 6.28 }));
     this.drift = [r() * N, r() * N];
     this.state = skyState(city, now, this.weather);
     this.stateAt = now;
@@ -227,7 +230,8 @@ export class SkyView {
     return clampTo(-this.centerY * BG_PX, -0.3 * this.skyH, 0.3 * this.skyH);
   }
   bgX(bearingX) {
-    return this.w / 2 + dxWrap(this.centerX, bearingX) * UNIT_PX * this.bgZoom;
+    const offset = ((bearingX - this.centerX) % ATMOSPHERE_W + ATMOSPHERE_W * 1.5) % ATMOSPHERE_W - ATMOSPHERE_W / 2;
+    return this.w / 2 + offset * UNIT_PX * this.bgZoom;
   }
 
   get bgZoom() { return clampTo(Math.sqrt(this.zoom), 0.5, 4); }
@@ -255,6 +259,10 @@ export class SkyView {
 
   frame(now, t) {
     if (!this.city) return;
+    if (this.pendingResize) {
+      this.pendingResize = false;
+      this.resize(this.w, this.h);
+    }
     const f0 = performance.now();
     if (Math.abs(now - this.stateAt) > 1000) {
       this.state = skyState(this.city, now, this.weather);
@@ -272,12 +280,14 @@ export class SkyView {
 
     // Rebuild the atmosphere at most ~30 times a second (2 with reduced
     // motion), and right away when the view pans.
-    const key = `${this.centerX}|${this.bgShift()}`;
+    const key = `${this.centerX}|${this.bgShift()}|${this.bgZoom}`;
     const interval = this.reducedMotion ? 500 : 33;
     if (key !== this.lastKey || t - this.lastBuild > interval) {
       const t0 = performance.now();
+      // Resize before rendering: resizing a canvas clears its pixels.
+      this.adapt(this.buildMs);
       this.buildAtmosphere();
-      this.adapt(performance.now() - t0);
+      this.buildMs = this.buildMs * 0.8 + (performance.now() - t0) * 0.2;
       this.lastBuild = t;
       this.lastKey = key;
     }
@@ -311,7 +321,7 @@ export class SkyView {
     if ((this.slowFrames = (this.slowFrames || 0) + 1) < 60) return;
     this.lowPower = true;
     this.scale = Math.max(this.scale, 7);
-    this.resize(this.w, this.h);
+    this.pendingResize = true;
   }
 
   ease(dt) {
@@ -369,11 +379,12 @@ export class SkyView {
     const deck = smooth(0.75, 1, cover) * 0.75 + wx.rain * 0.2;
     const sunPlane = [Math.sin(sunBear), Math.cos(sunBear)];
     const step = 3.5; // texels toward the sun for the self-shadow sample
-    const [ox, oy] = this.drift;
+    const [ox, driftY] = this.drift;
+    const oy = driftY + this.centerY * 4;
     let i = 0;
     for (let y = 0; y < bh; y++) {
-      const py = (y + 0.5) * this.scale;
-      const altDeg = this.yToAlt(py);
+      const py = (y + 0.5) * this.h / bh;
+      const altDeg = atmosphereAltitude(this.yToAlt(py));
       const alt = Math.max(-0.2, altDeg * RAD);
       const ca = Math.cos(alt);
       const sa = Math.sin(alt);
@@ -386,8 +397,8 @@ export class SkyView {
       const aerial = 1 - Math.exp(-dist * 0.12);
       const scaleUV = 46 * dist;
       for (let x = 0; x < bw; x++, i += 4) {
-        const pxs = (x + 0.5) * this.scale;
-        const bearing = ((this.centerX + (pxs - this.w / 2) / (UNIT_PX * this.bgZoom)) / SKY_W) * 2 * Math.PI;
+        const pxs = (x + 0.5) * this.w / bw;
+        const bearing = ((this.centerX + (pxs - this.w / 2) / (UNIT_PX * this.bgZoom)) / ATMOSPHERE_W) * 2 * Math.PI;
         const sb = Math.sin(bearing);
         const cb = Math.cos(bearing);
         const dx = ca * sb;
@@ -405,12 +416,6 @@ export class SkyView {
         r += (haze[0] - r) * hzk;
         gg += (haze[1] - gg) * hzk;
         b += (haze[2] - b) * hzk;
-        if (altDeg < 0) {
-          // Below the horizon line (hidden under the tray mostly): dim haze.
-          r *= 0.9;
-          gg *= 0.9;
-          b *= 0.92;
-        }
         sky[i] = r;
         sky[i + 1] = gg;
         sky[i + 2] = b;
@@ -418,12 +423,11 @@ export class SkyView {
 
         // Clouds: noise sampled on the deck at (dist·sinθ, dist·cosθ).
         const u = sb * scaleUV + ox;
-        const v = cb * scaleUV + oy;
+        const v = cb * scaleUV + oy + py * 0.04 / this.bgZoom;
         let d = noise(u, v) * 0.72 + noise(u * 2.7 + 31, v * 2.7 + 17) * 0.28;
         let a = smooth(th, th + soft, d);
         a = a + (1 - a) * deck * (0.75 + 0.25 * d);
         a *= 1 - aerial * 0.55;
-        a *= smooth(0.3, 4.5, altDeg); // distant deck dissolves into the haze
         if (a < 0.01) {
           cl[i + 3] = 0;
           continue;
@@ -454,7 +458,7 @@ export class SkyView {
       const fogCol = mix([70, 74, 86], [214, 218, 224], light);
       let j = 0;
       for (let y = 0; y < bh; y++) {
-        const altDeg = this.yToAlt((y + 0.5) * this.scale);
+        const altDeg = atmosphereAltitude(this.yToAlt((y + 0.5) * this.h / bh));
         const f = wx.fog * (0.45 + 0.55 * Math.exp(-Math.max(0, altDeg) / 18));
         for (let x = 0; x < bw; x++, j += 4) {
           sky[j] += (fogCol[0] - sky[j]) * f;
@@ -553,7 +557,7 @@ export class SkyView {
     }
     this.particles.length = target;
     const to = (this.windDir + 180) * RAD;
-    const across = Math.sin(to - (this.centerX / SKY_W) * 2 * Math.PI); // crosswind relative to the view
+    const across = Math.sin(to - (this.centerX / ATMOSPHERE_W) * 2 * Math.PI); // crosswind relative to the view
     const windPx = across * Math.min(1, wx.wind / 45);
     const tone = mix([120, 128, 150], [215, 222, 235], s.colors.light);
     const slow = this.reducedMotion ? 0.2 : 1;

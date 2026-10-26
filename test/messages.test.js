@@ -27,7 +27,7 @@ test("drafts are validated", () => {
   assert.equal(normalizeDraft({ x: 1, y: 0.5, blocks: [{ t: "<b>", dx: 0, dy: 0 }] }).error, "invalid_block");
   assert.equal(normalizeDraft({ x: 1, y: 0.5, blocks: [{ t: "AB", dx: 0, dy: 0 }] }).error, "invalid_block");
   assert.ok(normalizeDraft({ x: 1, y: 0.5, blocks: [{ t: "ㅋ", dx: 0, dy: 0 }] }).value);
-  assert.equal(normalizeDraft({ x: 13.5, y: 0.5, blocks: [{ t: "한", dx: 0, dy: 0 }] }).value.x, 1.5);
+  assert.equal(normalizeDraft({ x: SKY_W + 1.5, y: 0.5, blocks: [{ t: "한", dx: 0, dy: 0 }] }).value.x, 1.5);
 });
 
 test("text reads row by row", () => {

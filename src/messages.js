@@ -14,9 +14,11 @@
 import { isBlockGlyph } from "./hangul.js";
 
 export const LIFETIME_MS = 24 * 60 * 60 * 1000;
-export const SKY_W = 12;
+// Large safety bounds protect floating point math; the atmosphere has its
+// own 12-unit bearing cycle, independent of this writing canvas.
+export const SKY_W = 1_000_008;
 export const UNIT_PX = 900;
-export const WORLD_Y = 100;
+export const WORLD_Y = 1_000_000;
 export const LAYOUT = 2;
 export const GLYPH = 0.1; // syllable size in world units
 export const MAX_BLOCKS = 40;
@@ -33,7 +35,7 @@ export function opacityAt(age) {
   return 1 - 0.7 * t ** 1.6;
 }
 
-export const wrapX = (x) => ((x % SKY_W) + SKY_W) % SKY_W;
+export const wrapX = (x) => { const r = x % SKY_W; return r < 0 ? r + SKY_W : r; };
 // Signed horizontal distance from a to b the short way round the panorama.
 export function dxWrap(a, b) {
   let d = wrapX(b) - wrapX(a);

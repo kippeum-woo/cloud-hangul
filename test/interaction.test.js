@@ -58,8 +58,9 @@ test('trackpad, wheel units and Safari gestures zoom once and leave tray scrolli
   surface.clientHeight = 800;
   surface.getBoundingClientRect = () => ({ x:0,y:0,width:1000,height:800 });
   const factors = [];
+  const pans = [];
   let pointers = false;
-  bindZoomInput(surface, { zoom: f => factors.push(f), pointersActive: () => pointers });
+  bindZoomInput(surface, { zoom: f => factors.push(f), pan: (x,y) => pans.push([x,y]), pointersActive: () => pointers });
   const send = (type, props = {}) => {
     const e = new Event(type, { cancelable:true });
     Object.assign(e, { deltaMode:0,deltaX:0,deltaY:-20,ctrlKey:true,clientX:300,clientY:200, ...props });
@@ -78,6 +79,8 @@ test('trackpad, wheel units and Safari gestures zoom once and leave tray scrolli
   send('gestureend');
   send('wheel', {deltaY:20});
   assert.ok(factors.at(-1) < 1);
+  send('wheel', {ctrlKey:false,deltaX:8,deltaY:20});
+  assert.deepEqual(pans.at(-1), [-8,-20]);
   assert.equal(wheelZoomFactor({deltaY:1,deltaMode:1}), wheelZoomFactor({deltaY:16,deltaMode:0}));
   surface.closest = () => true;
   assert.equal(send('wheel').defaultPrevented, false);

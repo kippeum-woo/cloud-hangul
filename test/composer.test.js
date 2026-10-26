@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createComposer, restoreComposer } from "../src/composer.js";
+import { SKY_W } from "../src/messages.js";
 
 let n = 0;
 const r = () => `r${++n}`;
@@ -68,10 +69,10 @@ test("remove, pop and reset release reservations; undo asks to claim them again"
 
 test("toMessage names the reservations behind every block", () => {
   const c = createComposer();
-  c.drop("ㅋ", "k1", 11.95, 0.5);
+  c.drop("ㅋ", "k1", SKY_W - 0.05, 0.5);
   c.drop("ㅋ", "k2", 0.05, 0.5);
   const m = c.toMessage();
-  assert.ok(m.x < 0.01 || m.x > 11.99, "centered across the wrap seam");
+  assert.ok(m.x < 0.01 || m.x > SKY_W - 0.01, "centered across the wrap seam");
   assert.deepEqual(m.blocks.map((b) => [Math.round(b.dx * 10) / 10, b.pieces]), [[-0.5, ["k1"]], [0.5, ["k2"]]]);
 });
 

@@ -7,13 +7,14 @@ export function wheelZoomFactor(event, height = 800) {
 
 export function bindZoomInput(surface, { zoom, pan = () => {}, interrupt = () => {}, changed = () => {}, pointersActive = () => false }) {
   let gestureScale = null;
-  const allowed = e => !e.target.closest?.('input, textarea, #tray, #browse, #cluster-pick, #popover');
+  const allowed = e => !e.target.closest?.('input, textarea, #browse, #cluster-pick, #popover') &&
+    (e.ctrlKey || !e.target.closest?.('#tray'));
   surface.addEventListener('wheel', e => {
     if (!allowed(e)) return;
     e.preventDefault();
     if (gestureScale !== null) return; // Safari can report both kinds.
     interrupt();
-    if (e.ctrlKey || Math.abs(e.deltaY) >= Math.abs(e.deltaX)) {
+    if (e.ctrlKey) {
       zoom(wheelZoomFactor(e, surface.clientHeight), e.clientX, e.clientY);
     } else {
       const unit = [1, 16, surface.clientHeight][e.deltaMode] ?? 1;
@@ -27,6 +28,7 @@ export function bindZoomInput(surface, { zoom, pan = () => {}, interrupt = () =>
     gestureScale = e.scale > 0 ? e.scale : 1;
     interrupt();
   }, { passive: false });
+  surface.addEventListener('pointerdown', () => { gestureScale = null; });
   surface.addEventListener('gesturechange', e => {
     if (gestureScale === null) return;
     e.preventDefault();

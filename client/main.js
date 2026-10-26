@@ -294,48 +294,31 @@ function addMessage(m) {
   updateNote();
 }
 
-// Loads 1×1 world tiles around the view, one request per tile row.
+// One viewport query regardless of zoom; never enumerate millions of tiles.
+let viewportRequest = 0;
 async function loadVisible() {
   if (!state.city) return;
-  const v = sky.visibleRange(MARGIN);
-  const ixFrom = Math.floor(v.x0);
-  const ixTo = Math.min(Math.floor(v.x1), ixFrom + SKY_W - 1);
-  const rows = new Map();
-  const added = [];
-  for (let iy = Math.floor(v.y0); iy <= Math.floor(v.y1); iy++) {
-    for (let ix = ixFrom; ix <= ixTo; ix++) {
-      const key = `${wrapX(ix)}:${iy}`;
-      if (state.loaded.has(key)) continue;
-      state.loaded.add(key);
-      added.push(key);
-      const row = rows.get(iy);
-      if (row) row.hi = ix;
-      else rows.set(iy, { lo: ix, hi: ix });
-    }
-  }
-  if (!rows.size) return;
+  const request = ++viewportRequest;
   const cityId = state.city.id;
   state.loadingMessages = true;
   updateNote();
   try {
-    const results = await Promise.all(
-      [...rows].map(([iy, r]) => api.messages(cityId, { x0: r.lo, x1: r.hi + 1, y0: iy, y1: iy + 1 })),
-    );
-    if (state.city?.id !== cityId) return;
-    state.total = results[0].total;
-    for (const res of results) for (const m of res.messages) addMessage(m);
+    const result = await api.messages(cityId, sky.visibleRange(MARGIN));
+    if (state.city?.id !== cityId || request !== viewportRequest) return;
+    state.total = result.total;
+    for (const m of result.messages) addMessage(m);
     state.messagesError = null;
     evictFar();
   } catch (error) {
-    for (const key of added) state.loaded.delete(key);
-    state.messagesError = error;
+    if (request === viewportRequest) state.messagesError = error;
   } finally {
-    state.loadingMessages = false;
-    updateNote();
-    updateCompose();
+    if (request === viewportRequest) {
+      state.loadingMessages = false;
+      updateNote();
+      updateCompose();
+    }
   }
 }
-
 function evictFar() {
   const keep = sky.visibleRange(EVICT_MARGIN);
   const mid = (keep.x0 + keep.x1) / 2;
@@ -381,7 +364,7 @@ function updateNote() {
     html = "Couldn't reach the message server.<br />Other people's clouds and releasing new ones are unavailable.<br /><button class=\"pill small\" id=\"retry\">Try again</button>";
   } else if (state.loadingMessages && !sky.messages.size) html = "Loading this sky…";
   else if (!state.total && !composer.blocks.length && !sky.messages.size)
-    html = "No cloud messages in this sky yet.<br />Open <strong>Letters</strong> and drag letters up to write the first one.";
+    html = "No cloud messages in this sky yet.<br />Open <strong>Hangul</strong> and drag letters up to write the first one.";
   note.hidden = !html;
   note.classList.toggle("error", error);
   if (note._html !== html) {
@@ -699,7 +682,7 @@ $("btn-share-city").addEventListener("click", async () => {
     pointersActive: () => pointers.size >= 2,
   });
   canvas.tabIndex = 0;
-  canvas.setAttribute("aria-label", "Sky: drag to look around, pinch or scroll to zoom, arrow keys to pan, plus and minus to zoom");
+  canvas.setAttribute("aria-label", "Sky: drag to look around, two-finger scroll to pan, pinch to zoom, arrow keys to pan, plus and minus to zoom");
   canvas.addEventListener("keydown", (e) => {
     const pan = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
     const zoom = { "+": 1.25, "=": 1.25, "-": 0.8 }[e.key];
@@ -714,7 +697,7 @@ $("btn-share-city").addEventListener("click", async () => {
 
 let panTimer = null;
 function onPan() {
-  $("zoom-level").textContent = `${Math.round(sky.zoom * 100)}%`;
+  $("zoom-level").textContent = `${Number((sky.zoom * 100).toPrecision(3))}%`;
   writing.position();
   clearTimeout(panTimer);
   panTimer = setTimeout(() => {
@@ -743,7 +726,7 @@ function restoreCamera(city) {
   }
   if (saved && [saved.x, saved.y, saved.z].every(Number.isFinite)) sky.setCamera(saved.x, saved.y, saved.z);
   else goHomeNow();
-  $("zoom-level").textContent = `${Math.round(sky.zoom * 100)}%`;
+  $("zoom-level").textContent = `${Number((sky.zoom * 100).toPrecision(3))}%`;
 }
 
 const goHomeNow = () => sky.setCamera(sky.defaultCenter(), 0, 1);

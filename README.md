@@ -19,14 +19,14 @@ and one supply of letters.
 
 ## Flow
 
-globe → select a catalog city → its current local sky → open **Letters**,
+globe → select a catalog city → its current local sky → open **Hangul**,
 drag letters up and let them combine → **Release into the sky** → share a link
 to the message.
 
 The tray includes ㄲ, ㄸ, ㅃ, ㅆ and ㅉ. Drag ㅏ beside ㄱ to make 가,
 then drop ㄴ below it to make 간. Separate draft blocks can also be dragged
 together; Undo separates them without claiming more letters. Pinch the sky
-with two fingers or a trackpad to zoom; Safari gestures and ctrl-wheel are
+with two fingers or a trackpad to zoom; two-finger scrolling pans in both axes; Safari gestures and ctrl-wheel are
 supported. The backdrop follows zoom gently and a percentage shows camera scale.
 
 ## Pieces
@@ -133,3 +133,5 @@ env HOST=127.0.0.1 PORT=3000 node server/start.js   # open /?dev=1 for the demo 
 
 Land shapes come from Natural Earth (public domain) via `world-atlas`;
 `npm run land -- <path to land-50m.json>` rebuilds `client/land.json`.
+
+The writing world uses large numerical safety bounds, independent of the 12-unit atmosphere cycle. Zoom spans 0.01%–12800%. Viewport loading uses one rectangular query at any zoom. Resolution changes occur before shading so blank buffers never reach the screen; clouds continue below the horizon.

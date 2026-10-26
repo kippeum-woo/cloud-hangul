@@ -249,6 +249,10 @@ export class Globe {
         this.idleSince = performance.now();
       },
       zoom: factor => { this.view.dist = clamp(this.view.dist / factor, MIN_DIST, MAX_DIST); },
+      pan: (x, y) => {
+        this.view.lon = wrapLon(this.view.lon - x * 0.08);
+        this.view.lat = clamp(this.view.lat + y * 0.08, -80, 80);
+      },
       pointersActive: () => pointers.size >= 2,
     });
     el.tabIndex = 0;

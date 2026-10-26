@@ -16,7 +16,7 @@ test("a rectangle matches messages touching it in both axes, across the bearing 
 });
 
 test("world y is unbounded within ±WORLD_Y and x wraps", () => {
-  assert.equal(normalizeDraft({ x: 13.5, y: 500, blocks: [{ t: "한", dx: 0, dy: 0 }] }).value.y, WORLD_Y);
+  assert.equal(normalizeDraft({ x: 13.5, y: WORLD_Y * 2, blocks: [{ t: "한", dx: 0, dy: 0 }] }).value.y, WORLD_Y);
   assert.equal(normalizeDraft({ x: 1, y: -2.5, blocks: [{ t: "한", dx: 0, dy: 0 }] }).value.y, -2.5);
 });
 
