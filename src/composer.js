@@ -60,6 +60,22 @@ export function createComposer({ blocks = [] } = {}) {
       return { block, joined: false, rejected: Boolean(target) };
     },
 
+    previewMerge(sourceId, targetId) {
+      const source = find(sourceId), target = find(targetId);
+      if (!source || !target || source === target) return null;
+      const state = compose([...letters(target), ...letters(source)]);
+      return state ? glyph(state) : null;
+    },
+
+    merge(sourceId, targetId) {
+      if (!this.previewMerge(sourceId, targetId)) return false;
+      const source = find(sourceId), target = find(targetId);
+      history.push({ type: "merge", blocks: draft.map(clone) });
+      target.pieces.push(...source.pieces);
+      draft = draft.filter(b => b !== source);
+      return true;
+    },
+
     move(id, x, y) {
       const b = find(id);
       if (!b) return;
@@ -101,6 +117,10 @@ export function createComposer({ blocks = [] } = {}) {
     undo() {
       const h = history.pop();
       if (!h) return { release: [] };
+      if (h.type === "merge") {
+        draft = h.blocks.map(clone);
+        return { release: [] };
+      }
       if (h.type === "add") {
         const b = find(h.id);
         if (!b) return { release: [] };

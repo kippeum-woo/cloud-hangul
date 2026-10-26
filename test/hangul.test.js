@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { blockText, canAdd, compose, CONSONANTS, decompose, LETTERS, VOWELS } from "../src/hangul.js";
 
-test("the tray has 14 consonants and all 21 vowels", () => {
-  assert.equal(CONSONANTS.length, 14);
+test("the tray has 19 consonants and all 21 vowels", () => {
+  assert.equal(CONSONANTS.length, 19);
   assert.equal(VOWELS.length, 21);
-  assert.equal(new Set(LETTERS).size, 35);
+  assert.equal(new Set(LETTERS).size, 40);
   for (const v of ["ㅔ", "ㅖ", "ㅘ", "ㅢ", "ㅙ", "ㅞ"]) assert.ok(VOWELS.includes(v), v);
 });
 

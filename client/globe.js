@@ -4,6 +4,7 @@
 // real focus, labels and large touch targets; nearby markers merge into
 // clusters at low zoom. Only catalog cities are selectable.
 import * as THREE from "three";
+import { bindZoomInput } from "./zoom-input.js";
 
 const MIN_DIST = 1.45;
 const MAX_DIST = 4.4;
@@ -219,7 +220,7 @@ export class Globe {
       if (pointers.size === 2 && pinch) {
         const [a, b] = [...pointers.values()];
         const d = Math.hypot(a.x - b.x, a.y - b.y);
-        this.view.dist = clamp(pinch.dist * (pinch.d / d), MIN_DIST, MAX_DIST);
+        if (d > 0) this.view.dist = clamp(pinch.dist * (pinch.d / d), MIN_DIST, MAX_DIST);
         return;
       }
       if (!last) return;
@@ -240,17 +241,16 @@ export class Globe {
     };
     el.addEventListener("pointerup", end);
     el.addEventListener("pointercancel", end);
-    el.addEventListener(
-      "wheel",
-      (e) => {
-        e.preventDefault();
+    el.addEventListener("lostpointercapture", end);
+    bindZoomInput(el.parentElement, {
+      interrupt: () => {
         this.cancelFlight();
         this.closePick();
         this.idleSince = performance.now();
-        this.view.dist = clamp(this.view.dist * Math.exp(e.deltaY * 0.0012), MIN_DIST, MAX_DIST);
       },
-      { passive: false },
-    );
+      zoom: factor => { this.view.dist = clamp(this.view.dist / factor, MIN_DIST, MAX_DIST); },
+      pointersActive: () => pointers.size >= 2,
+    });
     el.tabIndex = 0;
     el.setAttribute("aria-label", "Globe: arrow keys rotate, + and − zoom");
     el.addEventListener("keydown", (e) => {

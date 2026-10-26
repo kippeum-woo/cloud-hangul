@@ -68,15 +68,15 @@ for (const usePages of [false, true]) test(`Cloudflare ${usePages ? "Pages gatew
     ws.addEventListener("message", e => events.push(JSON.parse(e.data)));
     ws.accept();
     const pieces = [];
-    for (const letter of ["ㅎ", "ㅏ", "ㄴ"]) pieces.push((await a(`${city}/reservations`, "POST", { letter })).reservation.id);
+    for (const letter of ["ㄲ", "ㅏ", "ㄴ"]) pieces.push((await a(`${city}/reservations`, "POST", { letter })).reservation.id);
     const payload = { requestId: "publish-stable-123", x: 2, y: 0, blocks: [{ pieces, dx: 0, dy: 0 }] };
     const pub = await a(`${city}/messages`, "POST", payload);
     assert.equal(pub.status, 201);
-    assert.equal(pub.message.text, "한");
+    assert.equal(pub.message.text, "깐");
     const again = await a(`${city}/messages`, "POST", payload);
     assert.equal(again.status, 200);
     assert.equal(again.message.id, pub.message.id);
-    assert.equal((await b(`/api/messages/${pub.message.id}`)).message.text, "한");
+    assert.equal((await b(`/api/messages/${pub.message.id}`)).message.text, "깐");
     assert.equal((await b(`${city}/messages/${pub.message.id}`, "DELETE")).status, 403);
     assert.equal((await a("/api/words")).cities["kr-seoul"].length, 1);
     assert.ok(events.some(e => e.type === "inventory"));
@@ -89,7 +89,7 @@ for (const usePages of [false, true]) test(`Cloudflare ${usePages ? "Pages gatew
     await mf.dispose();
     mf = new Miniflare(options);
     assert.equal((await b(`${city}/inventory`)).available["ㄱ"], 0);
-    assert.equal((await a(`/api/messages/${pub.message.id}`)).message.text, "한");
+    assert.equal((await a(`/api/messages/${pub.message.id}`)).message.text, "깐");
     assert.equal((await b(`${city}/inventory`)).available["ㅔ"], 9);
     assert.equal((await b(`${city}/reservations/release`, "POST", { ids: [held.reservation.id] })).released, 1);
     assert.equal((await b(`${city}/inventory`)).available["ㅔ"], 10);

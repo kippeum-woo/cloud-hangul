@@ -1,7 +1,6 @@
 // Renders a city's sky. Messages live in a boundless world (see messages.js)
 // seen through a camera (centerX, centerY, zoom). The backdrop is a 360°
-// panorama that follows the camera horizontally at a fixed scale, does not
-// zoom, and shifts vertically only slightly so it reads as far away.
+// panorama that follows the camera with gentle zoom and vertical parallax.
 //
 // The atmosphere is shaded per pixel into two small buffers that are scaled
 // up (which also keeps gradients smooth): a sky buffer with a vertical
@@ -222,20 +221,24 @@ export class SkyView {
     this.setCamera(anchor.x - (px - this.w / 2) / u, anchor.y - (py - this.h / 2) / u, zoom);
   }
 
-  // Backdrop: a fixed scale around the camera's bearing, with vertical parallax
+  // Backdrop follows zoom gently, with vertical parallax
   // clamped so the sky never runs out at extreme pans.
   bgShift() {
     return clampTo(-this.centerY * BG_PX, -0.3 * this.skyH, 0.3 * this.skyH);
   }
   bgX(bearingX) {
-    return this.w / 2 + dxWrap(this.centerX, bearingX) * UNIT_PX;
+    return this.w / 2 + dxWrap(this.centerX, bearingX) * UNIT_PX * this.bgZoom;
   }
 
+  get bgZoom() { return clampTo(Math.sqrt(this.zoom), 0.5, 4); }
+
   altToY(altDeg) {
-    return this.skyH * (0.97 - (clampTo(altDeg, -10, 89) / 72) * 0.9) + this.bgShift();
+    const base = this.skyH * (0.97 - (clampTo(altDeg, -10, 89) / 72) * 0.9);
+    return this.skyH / 2 + (base - this.skyH / 2) * this.bgZoom + this.bgShift();
   }
   yToAlt(y) {
-    return ((0.97 - (y - this.bgShift()) / this.skyH) / 0.9) * 72;
+    const base = this.skyH / 2 + (y - this.bgShift() - this.skyH / 2) / this.bgZoom;
+    return ((0.97 - base / this.skyH) / 0.9) * 72;
   }
 
   hitMessage(px, py, now) {
@@ -384,7 +387,7 @@ export class SkyView {
       const scaleUV = 46 * dist;
       for (let x = 0; x < bw; x++, i += 4) {
         const pxs = (x + 0.5) * this.scale;
-        const bearing = ((this.centerX + (pxs - this.w / 2) / UNIT_PX) / SKY_W) * 2 * Math.PI;
+        const bearing = ((this.centerX + (pxs - this.w / 2) / (UNIT_PX * this.bgZoom)) / SKY_W) * 2 * Math.PI;
         const sb = Math.sin(bearing);
         const cb = Math.cos(bearing);
         const dx = ca * sb;
@@ -474,7 +477,7 @@ export class SkyView {
     const clear = clamp01(1 - this.wx.fog * 1.2) * (1 - this.wx.cloud * 0.5);
     if (night < 0.02 || clear < 0.05) return;
     for (const st of this.stars) {
-      const p = { x: this.bgX(st.x), y: st.y * this.skyH + this.bgShift() };
+      const p = { x: this.bgX(st.x), y: this.skyH / 2 + (st.y - 0.5) * this.skyH * this.bgZoom + this.bgShift() };
       if (p.x < -4 || p.x > this.w + 4) continue;
       // Fainter near the horizon, where the air is thicker.
       const ext = smooth(0.95, 0.55, st.y);

@@ -22,9 +22,9 @@ function spend(s, city, visitor, letter, n) {
   s.consume(city, visitor, ids);
 }
 
-test("each city starts once with 10 complete decks (350 pieces)", () => {
+test("each city starts once with 10 complete decks (400 pieces)", () => {
   const { s } = make();
-  assert.equal(total(s, "kr-seoul"), 350);
+  assert.equal(total(s, "kr-seoul"), 400);
   for (const l of LETTERS) assert.equal(s.snapshot("kr-seoul")[l], 10);
 });
 
@@ -79,7 +79,7 @@ test("one deck per 6 minutes when quiet, including time nobody is looking, cappe
   assert.equal(s.snapshot("kr-seoul")["ㄱ"], 5);
   clock.t += 5 * 60 * MIN; // five hours away
   assert.equal(s.snapshot("kr-seoul")["ㄱ"], 10);
-  assert.equal(total(s, "kr-seoul"), 350, "consumed pieces only come back through refills, up to the cap");
+  assert.equal(total(s, "kr-seoul"), 400, "consumed pieces only come back through refills, up to the cap");
 });
 
 test("refills run once per city, not once per visitor or refresh", () => {

@@ -20,6 +20,7 @@ import { SkyView, ZOOM_MAX, ZOOM_MIN } from "./skyview.js";
 import { Tray } from "./tray.js";
 import { shareLink, showModal, toast } from "./ui.js";
 import { Writing } from "./writing.js";
+import { bindZoomInput } from "./zoom-input.js";
 
 const $ = (id) => document.getElementById(id);
 const app = $("app");
@@ -674,6 +675,11 @@ $("btn-share-city").addEventListener("click", async () => {
       return;
     }
     if (!drag || drag.id !== e.pointerId) return;
+    if (e.type !== "pointerup") {
+      drag = null;
+      velocity = { x: 0, y: 0 };
+      return;
+    }
     if (!drag.moved) {
       const m = sky.hitMessage(e.clientX, e.clientY, serverNow());
       if (m) showPopover(m, e.clientX, e.clientY - 20);
@@ -686,20 +692,12 @@ $("btn-share-city").addEventListener("click", async () => {
   };
   canvas.addEventListener("pointerup", end);
   canvas.addEventListener("pointercancel", end);
-  canvas.addEventListener(
-    "wheel",
-    (e) => {
-      e.preventDefault();
-      interrupt();
-      const scale = [1, 16, window.innerHeight][e.deltaMode] ?? 1;
-      const dx = e.deltaX * scale;
-      const dy = e.deltaY * scale;
-      if (e.ctrlKey || Math.abs(dy) >= Math.abs(dx)) sky.zoomAt(Math.exp(-dy * 0.0015), e.clientX, e.clientY);
-      else sky.panBy(-dx, -dy);
-      onPan();
-    },
-    { passive: false },
-  );
+  canvas.addEventListener("lostpointercapture", end);
+  bindZoomInput($("sky-view"), {
+    zoom: (factor, x, y) => sky.zoomAt(factor, x, y),
+    pan: (x, y) => sky.panBy(x, y), interrupt, changed: onPan,
+    pointersActive: () => pointers.size >= 2,
+  });
   canvas.tabIndex = 0;
   canvas.setAttribute("aria-label", "Sky: drag to look around, pinch or scroll to zoom, arrow keys to pan, plus and minus to zoom");
   canvas.addEventListener("keydown", (e) => {
@@ -716,6 +714,7 @@ $("btn-share-city").addEventListener("click", async () => {
 
 let panTimer = null;
 function onPan() {
+  $("zoom-level").textContent = `${Math.round(sky.zoom * 100)}%`;
   writing.position();
   clearTimeout(panTimer);
   panTimer = setTimeout(() => {
@@ -743,6 +742,7 @@ function restoreCamera(city) {
     saved = null;
   }
   if (saved && [saved.x, saved.y, saved.z].every(Number.isFinite)) sky.setCamera(saved.x, saved.y, saved.z);
+  $("zoom-level").textContent = `${Math.round(sky.zoom * 100)}%`;
   else goHomeNow();
 }
 

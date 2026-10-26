@@ -19,7 +19,7 @@ import { LETTERS } from "../../src/hangul.js";
 
 // Prototype rules. Tune here (or pass `config` to createSupply).
 export const SUPPLY = {
-  startDecks: 10, // each city starts with 10 of every letter (350 pieces)
+  startDecks: 10, // each city starts with 10 of every letter (400 pieces)
   refillMs: 6 * 60 * 1000,
   activeWindowMs: 30 * 60 * 1000, // "active visitor" = interacted within this window
   reservationTtlMs: 10 * 60 * 1000, // abandoned drafts return their pieces after this
@@ -54,6 +54,13 @@ export function createSupply({ initial = {}, onDirty = () => {}, now = () => Dat
       c = { available, reservations: [], anchor: now(), visitors: {}, done: {} };
       cities.set(id, c);
       save();
+    }
+    // Upgrade persisted cities without resetting stock, reservations or timers.
+    for (const l of LETTERS) {
+      if (!Object.hasOwn(c.available, l)) {
+        c.available[l] = config.startDecks;
+        save();
+      }
     }
     return c;
   }

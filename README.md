@@ -23,6 +23,12 @@ globe → select a catalog city → its current local sky → open **Letters**,
 drag letters up and let them combine → **Release into the sky** → share a link
 to the message.
 
+The tray includes ㄲ, ㄸ, ㅃ, ㅆ and ㅉ. Drag ㅏ beside ㄱ to make 가,
+then drop ㄴ below it to make 간. Separate draft blocks can also be dragged
+together; Undo separates them without claiming more letters. Pinch the sky
+with two fingers or a trackpad to zoom; Safari gestures and ctrl-wheel are
+supported. The backdrop follows zoom gently and a percentage shows camera scale.
+
 ## Pieces
 
 | File | What it does |
@@ -49,7 +55,7 @@ has a valid timezone and a working sky endpoint.
 The server owns each city's letters; browsers only hold reservations.
 
 - A city is created once, on first visit, with 10 complete decks: 10 of each
-  of the 35 letters (350 pieces).
+  of the 40 letters (400 pieces).
 - Picking a letter up reserves one piece on the server. Two people can never
   both get the last one. Removing it, undo, **Start over**, switching city, or
   dropping it back on the tray releases it. Reservations expire after 10

@@ -50,11 +50,14 @@ export class Writing {
   // Tray press: a drag if the pointer moves, a tap if it does not.
   pressLetter(letter, button, e) {
     if (!e) return this.tapLetter(letter);
+    if (e.button !== 0 || this.drag) return;
+    button.setPointerCapture?.(e.pointerId);
     this.drag = { kind: "piece", letter, id: e.pointerId, sx: e.clientX, sy: e.clientY, started: false, touch: e.pointerType === "touch", button };
   }
 
   pressBlock(block, el, e) {
     e.stopPropagation();
+    if (e.button !== 0 || this.drag) return;
     this.select(block.id);
     this.drag = { kind: "block", block, el, id: e.pointerId, sx: e.clientX, sy: e.clientY, started: false, touch: e.pointerType === "touch" };
     el.setPointerCapture?.(e.pointerId);
@@ -111,7 +114,7 @@ export class Writing {
       this.ghost.style.transform = `translate(${px}px, ${py}px) translate(-50%, -50%) scale(${overTray ? 0.7 : 1})`;
       this.ghost.style.opacity = overTray ? "0.6" : "1";
       const at = this.sky.toSky(px, py);
-      const target = overTray ? null : this.composer.nearest(at.x, at.y, GLYPH * 0.9);
+      const target = overTray ? null : this.joinTarget(at, b => this.composer.preview(b.id, d.letter));
       this.setTarget(target, target ? this.composer.preview(target.id, d.letter) : null);
       this.showGuide(!overTray && !target ? this.alignSpot(at.x, at.y, null) : null);
     } else {
@@ -119,7 +122,9 @@ export class Writing {
       el.style.transform = `translate(${px}px, ${py}px) translate(-50%, -50%) scale(${overTray ? 0.7 : 1.06})`;
       el.style.opacity = overTray ? "0.5" : "";
       const at = this.sky.toSky(px, py);
-      this.showGuide(overTray ? null : this.alignSpot(at.x, at.y, d.block.id));
+      const target = overTray ? null : this.joinTarget(at, b => this.composer.previewMerge(d.block.id, b.id), d.block.id);
+      this.setTarget(target, target ? this.composer.previewMerge(d.block.id, target.id) : null);
+      this.showGuide(overTray || target ? null : this.alignSpot(at.x, at.y, d.block.id));
     }
   }
 
@@ -169,11 +174,32 @@ export class Writing {
       this.release(this.composer.remove(d.block.id));
       this.selected = null;
     } else if (!cancelled) {
+      if (target && this.composer.merge(d.block.id, target.id)) {
+        this.select(target.id);
+        this.changed();
+        this.pulse(target.id);
+        return;
+      }
       const at = this.sky.toSky(d.px, d.py);
       const spot = this.alignSpot(at.x, clampY(at.y), d.block.id) || { x: at.x, y: clampY(at.y) };
       this.composer.move(d.block.id, spot.x, spot.y);
     }
     this.changed();
+  }
+
+  // Accept a vowel beside a block or a final below it. Keep a minimum
+  // screen-space hit area when zoomed out, and prefer compatible blocks.
+  joinTarget(at, accepts, exclude = null) {
+    let best = null;
+    const reachX = Math.max(GLYPH * 0.9, 44 / this.sky.unit);
+    const reachY = Math.max(GLYPH * 1.25, 56 / this.sky.unit);
+    for (const b of this.composer.blocks) {
+      if (b.id === exclude || !accepts(b)) continue;
+      const dx = dxWrap(b.x, at.x), dy = at.y - b.y;
+      const distance = (dx / reachX) ** 2 + (dy / reachY) ** 2;
+      if (distance <= 1 && (!best || distance < best.distance)) best = { b, distance };
+    }
+    return best?.b || null;
   }
 
   // Lines a block up beside a neighbor so syllables read as a word.
