@@ -8,6 +8,48 @@ import { Writing } from '../client/writing.js';
 import { SkyView } from '../client/skyview.js';
 import { bindZoomInput, wheelZoomFactor } from '../client/zoom-input.js';
 
+test('release removes editable hit targets and clears active letter gestures immediately', () => {
+  let removed = 0;
+  const writing = Object.assign(Object.create(Writing.prototype), {
+    els: new Map([['a', {remove: () => removed++}]]),
+    drag: {kind:'block'}, selected:'a', guide:{hidden:false}, ghost:{hidden:false},
+  });
+  writing.finishRelease();
+  assert.equal(removed, 1);
+  assert.equal(writing.els.size, 0);
+  assert.equal(writing.drag, null);
+  assert.equal(writing.selected, null);
+  assert.equal(writing.guide.hidden, true);
+  assert.equal(writing.ghost.hidden, true);
+});
+
+test('trackpad pans and pinch zoom keep released positions and surrounding cloud coordinates anchored', () => {
+  const message = Object.freeze({x:6.2,y:0.1});
+  const sky = Object.assign(Object.create(SkyView.prototype), {
+    w:1000,h:800,centerX:6,centerY:0,zoom:1,drift:[7,11],
+  });
+  const surface = new EventTarget();
+  surface.clientHeight = 800;
+  bindZoomInput(surface, {pan:(x,y)=>sky.panBy(x,y),zoom:(f,x,y)=>sky.zoomAt(f,x,y)});
+  const initial = sky.toScreen(message.x,message.y);
+  const cloud = sky.cloudUV(initial.x,initial.y);
+  for (const props of [
+    {deltaX:80,deltaY:140,ctrlKey:false},
+    {deltaX:0,deltaY:-90,ctrlKey:true},
+    {deltaX:-30,deltaY:2000,ctrlKey:false},
+  ]) {
+    const event = new Event('wheel',{cancelable:true});
+    Object.assign(event,{deltaMode:0,clientX:400,clientY:300,...props});
+    surface.dispatchEvent(event);
+    const position = sky.toScreen(message.x,message.y);
+    const texture = sky.cloudUV(position.x,position.y);
+    assert.ok(Math.abs(texture.u-cloud.u)<1e-8);
+    assert.ok(Math.abs(texture.v-cloud.v)<1e-8);
+    assert.deepEqual(message,{x:6.2,y:0.1});
+  }
+  assert.notDeepEqual(sky.toScreen(message.x,message.y),initial);
+});
+
 test('direct double consonants compose as initials and only valid finals', () => {
   for (const [letter, expected] of [['ㄲ','까'],['ㄸ','따'],['ㅃ','빠'],['ㅆ','싸'],['ㅉ','짜']]) {
     assert.equal(blockText([letter, 'ㅏ']), expected);

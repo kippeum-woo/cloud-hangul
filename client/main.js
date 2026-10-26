@@ -257,7 +257,7 @@ async function publish() {
     const { message } = await api.publish(state.city.id, draft, state.publishId);
     state.publishId = null;
     composer.spend();
-    writing.floatAway();
+    writing.finishRelease();
     save();
     addMessage(message);
     sky.highlight = message.id;

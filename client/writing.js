@@ -326,16 +326,14 @@ export class Writing {
     }
   }
 
-  // Floats the draft away when it is released into the sky.
-  floatAway() {
-    for (const el of this.els.values()) {
-      el.style.transition = "transform 0.9s ease-in, opacity 0.9s ease-in";
-      el.style.transform += " translateY(-40px) scale(0.92)";
-      el.style.opacity = "0";
-    }
-    const els = [...this.els.values()];
+  // Replace editable blocks immediately with the anchored canvas message.
+  finishRelease() {
+    this.drag = null;
+    this.selected = null;
+    this.guide.hidden = true;
+    this.ghost.hidden = true;
+    for (const el of this.els.values()) el.remove();
     this.els.clear();
-    setTimeout(() => els.forEach((el) => el.remove()), 950);
   }
 }
 

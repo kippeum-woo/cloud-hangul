@@ -203,6 +203,12 @@ export class SkyView {
   toSky(px, py) {
     return { x: wrapX(this.centerX + (px - this.w / 2) / this.unit), y: this.centerY + (py - this.h / 2) / this.unit };
   }
+  // Cloud texture and released Hangul share one world plane. Camera gestures
+  // move the view without sliding the lettering across its surrounding clouds.
+  cloudUV(px, py) {
+    const world = this.toSky(px, py);
+    return { u: world.x * 36 + this.drift[0], v: world.y * 36 + this.drift[1] };
+  }
   visibleRange(margin = 0.5) {
     const hx = this.w / 2 / this.unit + margin;
     const hy = this.h / 2 / this.unit + margin;
@@ -280,7 +286,7 @@ export class SkyView {
 
     // Rebuild the atmosphere at most ~30 times a second (2 with reduced
     // motion), and right away when the view pans.
-    const key = `${this.centerX}|${this.bgShift()}|${this.bgZoom}`;
+    const key = `${this.centerX}|${this.centerY}|${this.zoom}`;
     const interval = this.reducedMotion ? 500 : 33;
     if (key !== this.lastKey || t - this.lastBuild > interval) {
       const t0 = performance.now();
@@ -379,8 +385,6 @@ export class SkyView {
     const deck = smooth(0.75, 1, cover) * 0.75 + wx.rain * 0.2;
     const sunPlane = [Math.sin(sunBear), Math.cos(sunBear)];
     const step = 3.5; // texels toward the sun for the self-shadow sample
-    const [ox, driftY] = this.drift;
-    const oy = driftY + this.centerY * 4;
     let i = 0;
     for (let y = 0; y < bh; y++) {
       const py = (y + 0.5) * this.h / bh;
@@ -395,7 +399,6 @@ export class SkyView {
       // Cloud deck distance (perspective): far near the horizon, capped.
       const dist = altDeg > 0.6 ? Math.min(16, 1 / Math.tan(Math.max(alt, 0.012))) : 16;
       const aerial = 1 - Math.exp(-dist * 0.12);
-      const scaleUV = 46 * dist;
       for (let x = 0; x < bw; x++, i += 4) {
         const pxs = (x + 0.5) * this.w / bw;
         const bearing = ((this.centerX + (pxs - this.w / 2) / (UNIT_PX * this.bgZoom)) / ATMOSPHERE_W) * 2 * Math.PI;
@@ -421,9 +424,7 @@ export class SkyView {
         sky[i + 2] = b;
         sky[i + 3] = 255;
 
-        // Clouds: noise sampled on the deck at (dist·sinθ, dist·cosθ).
-        const u = sb * scaleUV + ox;
-        const v = cb * scaleUV + oy + py * 0.04 / this.bgZoom;
+        const { u, v } = this.cloudUV(pxs, py);
         let d = noise(u, v) * 0.72 + noise(u * 2.7 + 31, v * 2.7 + 17) * 0.28;
         let a = smooth(th, th + soft, d);
         a = a + (1 - a) * deck * (0.75 + 0.25 * d);
@@ -633,8 +634,6 @@ export class SkyView {
         g.globalAlpha = 1;
         continue;
       }
-      const bob = this.reducedMotion ? 0 : Math.sin(t / 2200 + (hashStr(m.id) % 628) / 100) * this.unit * 0.004;
-      const sway = this.reducedMotion ? 0 : Math.sin(t / 3100 + (hashStr(m.id) % 314) / 100) * this.unit * 0.002;
       if (m.id === this.highlight) {
         const r = Math.max(e.hw, e.hh) * this.unit * 1.5;
         const halo = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
@@ -644,7 +643,7 @@ export class SkyView {
         g.fillRect(p.x - r, p.y - r, r * 2, r * 2);
       }
       for (const b of m.blocks) {
-        drawGlyph(g, b.t, p.x + b.dx * size + sway, p.y + b.dy * size + bob, size, s.ink, alpha, this.dpr);
+        drawGlyph(g, b.t, p.x + b.dx * size, p.y + b.dy * size, size, s.ink, alpha, this.dpr);
       }
     }
   }
