@@ -87,7 +87,7 @@ button:disabled { cursor: default; }
 }
 .marker .dot {
   width: 14px; height: 14px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff, #e6eeff 50%, #b9c9f5);
+  background: #fff;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35), 0 0 14px rgba(255, 255, 255, 0.85);
 }
 .marker.capital .dot { width: 16px; height: 16px; }
@@ -99,11 +99,20 @@ button:disabled { cursor: default; }
 .marker .dot {
   display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;
 }
-/* Words in the sky: a bounded size step and glow for busier skies. */
-.marker[data-heat="1"] .dot { width: 22px; height: 22px; }
-.marker[data-heat="2"] .dot { width: 26px; height: 26px; box-shadow: 0 0 0 3px rgba(255, 244, 200, 0.45), 0 0 18px rgba(255, 240, 190, 0.95); }
-.marker[data-heat="3"] .dot { width: 31px; height: 31px; font-size: 12px; box-shadow: 0 0 0 4px rgba(255, 236, 170, 0.5), 0 0 24px rgba(255, 232, 160, 1); }
-.marker[data-heat="0"] .dot { color: rgba(44, 53, 84, 0.55); }
+/* Live counts: 0 white, 1–4 pale lime, 5–19 green, 20+ deep green. */
+.marker[data-heat="0"] .dot { background: #fff; color: #334155; }
+.marker[data-heat="1"] .dot {
+  width: 22px; height: 22px; background: #d9f99d; color: #24451b;
+  box-shadow: 0 0 0 3px rgba(217, 249, 157, 0.35), 0 0 14px rgba(190, 242, 100, 0.65);
+}
+.marker[data-heat="2"] .dot {
+  width: 26px; height: 26px; background: #86c94a; color: #173512;
+  box-shadow: 0 0 0 3px rgba(134, 201, 74, 0.45), 0 0 18px rgba(134, 201, 74, 0.8);
+}
+.marker[data-heat="3"] .dot {
+  width: 31px; height: 31px; font-size: 12px; background: #166534; color: #fff;
+  box-shadow: 0 0 0 4px rgba(74, 170, 93, 0.5), 0 0 24px rgba(34, 139, 67, 0.85);
+}
 .marker.cluster .dot {
   width: auto; min-width: 32px; height: 32px; padding: 0 9px; border-radius: 16px; font-size: 12px;
   outline: 2px solid rgba(255, 255, 255, 0.55); outline-offset: 2px;
@@ -120,7 +129,7 @@ button:disabled { cursor: default; }
 .cluster-pick button:hover, .cluster-pick button:focus-visible { background: rgba(108, 140, 255, 0.12); }
 .cluster-pick .w { color: var(--ink-soft); font-weight: 500; font-size: 13px; white-space: nowrap; }
 .marker:hover .dot, .marker:focus-visible .dot { transform: scale(1.25); }
-.marker .dot { transition: transform 0.15s; }
+.marker .dot { transition: transform 0.15s, background-color 0.25s, color 0.25s, box-shadow 0.25s; }
 
 .globe-top {
   position: absolute; top: calc(12px + var(--safe-t)); left: 12px; right: 12px;
