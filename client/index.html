@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="/" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#7f9cc4" />
+    <title>구름한글</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap" />
+    <link rel="stylesheet" href="{{BUILD}}/client/style.css" />
+    <script type="importmap">
+      { "imports": { "three": "{{BUILD}}/three/build/three.module.js" } }
+    </script>
+  </head>
+  <body>
+    <div id="app" data-view="globe">
+      <!-- Globe -->
+      <section id="globe-view" class="view" aria-label="Choose a city">
+        <canvas id="globe-canvas" aria-hidden="true"></canvas>
+        <div id="globe-markers" class="markers"></div>
+        <header class="globe-top">
+          <div class="brand">
+            <h1 class="brand-ko" lang="ko">구름한글</h1>
+            <p class="brand-tag">Write in the sky of any city</p>
+          </div>
+          <div class="search">
+            <input id="search" type="search" placeholder="Search cities or countries" autocomplete="off" aria-label="Search cities" />
+            <ul id="search-results" class="search-results" role="listbox" hidden></ul>
+          </div>
+        </header>
+        <p class="globe-hint" id="globe-hint">Spin the globe and pick a city. Numbers show words in its sky.</p>
+        <nav class="globe-actions">
+          <button id="btn-browse" class="pill">🗺️ Browse countries</button>
+          <button id="btn-gps" class="pill">📍 Near me</button>
+        </nav>
+        <div id="globe-loading" class="center-note">Loading the globe…</div>
+        <div id="cluster-pick" class="cluster-pick glass" hidden role="dialog" aria-label="Cities here"></div>
+        <aside id="browse" class="sheet" hidden aria-label="Cities by country">
+          <div class="sheet-head">
+            <button id="browse-back" class="icon-btn" aria-label="Back" hidden>‹</button>
+            <h2 id="browse-title">Countries</h2>
+            <button id="browse-close" class="icon-btn" aria-label="Close">✕</button>
+          </div>
+          <ul id="browse-list" class="sheet-list"></ul>
+        </aside>
+      </section>
+
+      <!-- Sky -->
+      <section id="sky-view" class="view" aria-label="City sky">
+        <canvas id="sky-canvas"></canvas>
+        <div id="draft-layer" class="draft-layer"></div>
+        <header class="sky-top">
+          <button id="btn-globe" class="icon-btn glass" aria-label="Back to the globe" title="Back to the globe">🌏</button>
+          <div class="place glass">
+            <div class="place-name"><span id="place-city"></span><span id="place-region"></span></div>
+            <div class="place-time"><strong id="place-clock"></strong><span id="place-date"></span><span id="place-offset"></span></div>
+            <div class="place-sky"><span id="place-phase"></span><span id="place-sun" class="sun-times"></span><span id="place-weather"></span><span id="weather-badge" class="badge" hidden>Simulated weather</span></div>
+          </div>
+          <button id="btn-share-city" class="icon-btn glass" aria-label="Share this sky" title="Share this sky">🔗</button>
+        </header>
+        <div id="sky-note" class="sky-note" hidden></div>
+        <div class="sky-controls" role="group" aria-label="Camera">
+          <button id="cam-home" class="pill small" type="button">Home</button>
+          <button id="cam-latest" class="pill small" type="button">My latest message</button>
+          <button id="zoom-in" class="icon-btn glass" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+          <button id="zoom-out" class="icon-btn glass" type="button" aria-label="Zoom out" title="Zoom out">−</button>
+        </div>
+        <div id="compose-bar" class="compose-bar" hidden>
+          <button id="btn-undo" class="pill small">↶ Undo</button>
+          <button id="btn-remove" class="pill small" disabled>Remove</button>
+          <button id="btn-reset" class="pill small">Start over</button>
+          <button id="btn-release" class="pill primary">☁️ Release into the sky</button>
+        </div>
+        <button id="tray-open" class="pill tray-open" aria-expanded="false" aria-controls="tray">✍️ Letters</button>
+        <footer id="tray" class="tray" aria-label="Letters" hidden>
+          <div class="tray-head">
+            <span class="tray-title">Letters</span>
+            <div class="tray-tabs" role="tablist" aria-label="Letter groups">
+              <button role="tab" data-tab="c" aria-selected="true">Consonants</button>
+              <button role="tab" data-tab="v" aria-selected="false">Vowels</button>
+            </div>
+            <button id="tray-close" class="pill small tray-close" aria-controls="tray">Close</button>
+          </div>
+          <div class="tray-group" data-group="c">
+            <span class="group-label">Consonants</span>
+            <div class="tray-row" id="row-c"></div>
+          </div>
+          <div class="tray-group" data-group="v">
+            <span class="group-label">Vowels</span>
+            <div class="tray-row" id="row-v"></div>
+          </div>
+        </footer>
+        <div id="popover" class="popover glass" hidden></div>
+      </section>
+
+      <!-- Unknown city -->
+      <section id="missing-view" class="view missing" aria-label="Sky not found">
+        <div class="missing-card glass">
+          <h2>We couldn't find that sky</h2>
+          <p id="missing-detail">This link points to a city that isn't in the 구름한글 catalog.</p>
+          <button id="btn-missing-globe" class="pill primary">🌏 Back to the globe</button>
+        </div>
+      </section>
+
+      <div id="wipe" class="wipe" aria-hidden="true"></div>
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+      <div id="modal" class="modal" hidden>
+        <div class="modal-card glass" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          <h2 id="modal-title"></h2>
+          <div id="modal-body"></div>
+          <div id="modal-actions" class="modal-actions"></div>
+        </div>
+      </div>
+      <div id="drag-ghost" class="drag-ghost" hidden></div>
+      <aside id="dev" class="dev glass" hidden></aside>
+    </div>
+    <script type="module" src="{{BUILD}}/client/main.js"></script>
+  </body>
+</html>

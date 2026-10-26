@@ -1,0 +1,13 @@
+{
+  "name": "cloud-hangul",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/start.js",
+    "land": "node scripts/build-land.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  }
+}
