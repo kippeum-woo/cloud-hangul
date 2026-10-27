@@ -9,11 +9,19 @@ test('wide camera pans do not repeat the old 12-unit world or stop at old vertic
   assert.ok(sky.centerX > 12);
   assert.equal(sky.centerY,300);
   sky.zoomAt(0.001,500,400);
-  assert.ok(sky.zoom < 0.08);
+  assert.equal(sky.zoom, 0.08);
   sky.zoomAt(100000,500,400);
-  assert.ok(sky.zoom > 8);
+  assert.equal(sky.zoom, 1);
   assert.ok(sky.zoom >= ZOOM_MIN && sky.zoom <= ZOOM_MAX);
   assert.equal(atmosphereAltitude(-1000),12);
+});
+
+test('restored camera zoom is clamped to 8–100 percent', () => {
+  const sky = Object.assign(Object.create(SkyView.prototype), {w:1000,h:800,centerX:6,centerY:0,zoom:1});
+  for (const [saved, expected] of [[0.0001, 0.08], [128, 1], [0.5, 0.5]]) {
+    sky.setCamera(6, 0, saved);
+    assert.equal(sky.zoom, expected);
+  }
 });
 
 test('Moscow day/night rendering stays painted during resolution changes and lower sky retains clouds', () => {

@@ -14,8 +14,8 @@ import { skyState } from "../src/sky.js";
 import { clampWorldY, dxWrap, extent, GLYPH, opacityAt, SKY_W, UNIT_PX, wrapX } from "../src/messages.js";
 import { drawGlyph } from "./glyphs.js";
 
-export const ZOOM_MIN = 0.0001;
-export const ZOOM_MAX = 128;
+export const ZOOM_MIN = 0.08;
+export const ZOOM_MAX = 1;
 const ATMOSPHERE_W = 12;
 // Continue the sky below the astronomical horizon without a ground/haze strip.
 export const atmosphereAltitude = raw => 12 + 12 * Math.log1p(Math.exp(Math.min(8, (raw - 12) / 12)));
