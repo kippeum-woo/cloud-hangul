@@ -8,6 +8,34 @@ import { Writing } from '../client/writing.js';
 import { SkyView } from '../client/skyview.js';
 import { bindZoomInput, wheelZoomFactor } from '../client/zoom-input.js';
 
+test('rapid tray clicks compose syllables in order and carry finals forward without losing reservations', async () => {
+  for (const [input, expected] of [
+    ['ㄱㅏㄴㅏ', '가나'], ['ㅎㅏㄴㄱㅡㄹ', '한글'],
+    ['ㄷㅏㄹㄱㅏ', '달가'], ['ㄱㅏㄲㅏ', '가까'],
+    ['ㄱㅗㅏㅈㅏ', '과자'], ['ㅇㅏㄴㄴㅕㅇ', '안녕'],
+  ]) {
+    const c = createComposer();
+    let n = 0;
+    const writing = Object.assign(Object.create(Writing.prototype), {
+      composer:c, selected:null, sky:{unit:100,w:1000,h:800,toScreen:()=>({x:500,y:400}),toSky:()=>({x:5,y:0})},
+      reserve:async()=>`r${++n}`, tray:{nudge:()=>assert.fail('unexpected claim failure')},
+      select(id){this.selected=id;}, pulse(){}, changed(){},
+    });
+    await Promise.all([...input].map(l=>writing.tapLetter(l)));
+    assert.equal(c.blocks.map(b=>c.text(b)).join(''),expected);
+    assert.equal(c.rids().length,input.length);
+    assert.equal(new Set(c.rids()).size,input.length);
+    const restored = createComposer(c.save());
+    assert.equal(restored.blocks.map(b=>restored.text(b)).join(''),expected);
+    if (input === 'ㄱㅏㄴㅏ') {
+      assert.deepEqual(c.undo(),{release:['r4']});
+      assert.equal(c.blocks.map(b=>c.text(b)).join(''),'간');
+      assert.deepEqual(c.undo(),{release:['r3']});
+      assert.equal(c.text(c.blocks[0]),'가');
+    }
+  }
+});
+
 test('release removes editable hit targets and clears active letter gestures immediately', () => {
   let removed = 0;
   const writing = Object.assign(Object.create(Writing.prototype), {

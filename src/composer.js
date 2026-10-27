@@ -3,7 +3,7 @@
 // reservation { l, rid }. The composer never touches stock itself; each
 // operation tells the caller which reservations to release, and undo of a
 // removal tells it which letters it must claim again first.
-import { addPiece, blockText, canAdd, compose, glyph } from "./hangul.js";
+import { addPiece, blockText, canAdd, compose, glyph, isVowel } from "./hangul.js";
 import { dxWrap, GLYPH, wrapX } from "./messages.js";
 
 let nextId = 1;
@@ -58,6 +58,20 @@ export function createComposer({ blocks = [] } = {}) {
       draft.push(block);
       history.push({ type: "add", id: block.id, created: true });
       return { block, joined: false, rejected: Boolean(target) };
+    },
+
+    // Sequential input moves the last final piece into the next syllable.
+    // Drag/drop still uses explicit block composition without this behavior.
+    continueSyllable(letter, rid, targetId, x, y) {
+      const target = find(targetId);
+      if (!target || !isVowel(letter) || !compose(letters(target))?.jong) return null;
+      const last = target.pieces.at(-1);
+      if (!canAdd([last.l], letter)) return null;
+      history.push({ type: "continue", blocks: draft.map(clone), rid });
+      target.pieces.pop();
+      const block = { id: newId(), x: wrapX(x), y, pieces: [last, { l: letter, rid }] };
+      draft.push(block);
+      return block;
     },
 
     previewMerge(sourceId, targetId) {
@@ -117,6 +131,10 @@ export function createComposer({ blocks = [] } = {}) {
     undo() {
       const h = history.pop();
       if (!h) return { release: [] };
+      if (h.type === "continue") {
+        draft = h.blocks.map(clone);
+        return { release: [h.rid] };
+      }
       if (h.type === "merge") {
         draft = h.blocks.map(clone);
         return { release: [] };

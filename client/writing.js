@@ -65,7 +65,13 @@ export class Writing {
 
   // Keyboard or tap: join the selected block if possible, else start a block
   // next to the last one (or in the middle of the view).
-  async tapLetter(letter) {
+  tapLetter(letter) {
+    const pending = (this.tapQueue || Promise.resolve()).then(() => this.applyTapLetter(letter));
+    this.tapQueue = pending.catch(() => {});
+    return pending;
+  }
+
+  async applyTapLetter(letter) {
     const rid = await this.reserve(letter);
     if (!rid) return this.tray.nudge(letter);
     const sel = this.selected && this.composer.blocks.find((b) => b.id === this.selected);
@@ -76,8 +82,9 @@ export class Writing {
       const last = sel || this.composer.blocks[this.composer.blocks.length - 1];
       const visible = last && Math.abs(this.sky.toScreen(last.x, last.y).x - this.sky.w / 2) < this.sky.w / 2 - this.size;
       const spot = last && visible ? { x: last.x + GLYPH * 1.04, y: last.y } : this.sky.toSky(this.sky.w / 2, this.sky.h * 0.45);
-      const r = this.composer.drop(letter, rid, spot.x, spot.y, null);
-      this.select(r.block.id);
+      const continued = sel && this.composer.continueSyllable(letter, rid, sel.id, spot.x, spot.y);
+      const block = continued || this.composer.drop(letter, rid, spot.x, spot.y, null).block;
+      this.select(block.id);
     }
     this.changed();
   }
